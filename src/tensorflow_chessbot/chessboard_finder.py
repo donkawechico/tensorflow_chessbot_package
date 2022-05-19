@@ -18,7 +18,8 @@ import numpy as np
 import PIL.Image
 import argparse
 from time import time
-from helper_image_loading import *
+from .helper_image_loading import *
+# from helper_image_loading import *
 
 
 def nonmax_suppress_1d(arr, winsize=5):

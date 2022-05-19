@@ -31,8 +31,7 @@ class ChessScreenshotServer():
   def init_qtgui(self, display=None, style=None, qtargs=None):
     """Initiates the QApplication environment using the given args."""
     if QApplication.instance():
-      print ("QApplication has already been instantiated.\n"
-         "Ignoring given arguments and returning existing QApplication.")
+      print("QApplication has already been instantiated.\n""Ignoring given arguments and returning existing QApplication.")
       return QApplication.instance()
 
     qtargs2 = [sys.argv[0]]
@@ -50,11 +49,11 @@ class ChessScreenshotServer():
         renderer.cookies = [self.options.cookie]
       with open(self.options.output_filename, 'w') as f:
         renderer.render_to_file(res=self.options.url, file_object=f)
-        print "\tSaved screenshot to '%s'" % f.name
+        print("\tSaved screenshot to '%s'" % f.name)
       QApplication.exit(0)
-    except RuntimeError, e:
-      print "Error:", e
-      print >> sys.stderr, e
+    except RuntimeError as e:
+      print("Error:", e)
+      print(sys.stderr, e)
       QApplication.exit(1)
 
 

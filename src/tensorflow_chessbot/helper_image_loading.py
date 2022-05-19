@@ -76,6 +76,9 @@ def loadImageFromPath(img_path):
   """Load PIL image from image filepath, keep as color"""
   return PIL.Image.open(open(img_path,'rb'))
 
+def loadImageFromBytes(img_bytes):
+  """Load PIL image from image bytes, keep as color"""
+  return PIL.Image.open(io.BytesIO(img_bytes))
 
 def resizeAsNeeded(img, max_size=(2000,2000), max_fail_size=(2000,2000)):
   if not PIL.Image.isImageType(img):

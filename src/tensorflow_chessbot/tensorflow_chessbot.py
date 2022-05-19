@@ -37,15 +37,16 @@
 # 
 # A lot of tensorflow code here is heavily adopted from the 
 # [tensorflow tutorials](https://www.tensorflow.org/versions/0.6.0/tutorials/pdes/index.html)
-
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' # Ignore Tensorflow INFO debug messages
 import tensorflow as tf
 import numpy as np
-
-from helper_functions import shortenFEN, unflipFEN
-import helper_image_loading
-import chessboard_finder
+from .helper_functions import shortenFEN, unflipFEN
+from . import helper_image_loading
+from . import chessboard_finder
+# from helper_functions import shortenFEN, unflipFEN
+# import helper_image_loading
+# import chessboard_finder
 
 def load_graph(frozen_graph_filepath):
     # Load and parse the protobuf file to retrieve the unserialized graph_def.
@@ -63,7 +64,7 @@ class ChessboardPredictor(object):
   """ChessboardPredictor using saved model"""
   def __init__(self, frozen_graph_path='saved_models/frozen_graph.pb'):
     # Restore model using a frozen graph.
-    print("\t Loading model '%s'" % frozen_graph_path)
+    debug("\t Loading model '%s'" % frozen_graph_path)
     graph = load_graph(frozen_graph_path)
     self.sess = tf.compat.v1.Session(graph=graph)
 
@@ -72,7 +73,7 @@ class ChessboardPredictor(object):
     self.keep_prob = graph.get_tensor_by_name('tcb/KeepProb:0')
     self.prediction = graph.get_tensor_by_name('tcb/prediction:0')
     self.probabilities = graph.get_tensor_by_name('tcb/probabilities:0')
-    print("\t Model restored.")
+    debug("\t Model restored.")
 
   def getPrediction(self, tiles):
     """Run trained neural network on tiles generated from image"""
@@ -140,18 +141,45 @@ class ChessboardPredictor(object):
     return result
 
   def close(self):
-    print("Closing session.")
+    debug("Closing session.")
     self.sess.close()
 
 ###########################################################
 # MAIN CLI
+DEBUG = False
 
-def main(args):
+def debug(msg):
+  if DEBUG:
+    print(msg)
+
+def main():
+  np.set_printoptions(suppress=True, precision=3)
+  import argparse
+  parser = argparse.ArgumentParser(description='Predict a chessboard FEN from supplied local image link or URL')
+  parser.add_argument('--url', default='http://imgur.com/u4zF5Hj.png', help='URL of image (ex. http://imgur.com/u4zF5Hj.png)')
+  parser.add_argument('--filepath', help='filepath to image (ex. u4zF5Hj.png)')
+  parser.add_argument('--unflip', default=False, action='store_true', help='revert the image of a flipped chessboard')
+  parser.add_argument('--active', default='w')
+  parser.add_argument('--minimal', default=True)
+  parser.add_argument('--filebytes', default=None)
+  args = parser.parse_args()
+
+  usingBytes = args.filebytes
+  onlyPrintFen = args.minimal
+  
   # Load image from filepath or URL
   if args.filepath:
     # Load image from file
+    print("Loading file")
     img = helper_image_loading.loadImageFromPath(args.filepath)
+    print("Loaded file")
+
     args.url = None # Using filepath.
+  elif args.filebytes:
+    img = helper_image_loading.loadImageFromPath("./chessboard7.png")
+
+    # img = helper_image_loading.loadImageFromBytes(args.filebytes)
+    args.url = None
   else:
     img, args.url = helper_image_loading.loadImageFromURL(args.url)
 
@@ -172,12 +200,13 @@ def main(args):
   # Create Visualizer url link
   if args.url:
     viz_link = helper_image_loading.getVisualizeLink(corners, args.url)
-    print('---\nVisualize tiles link:\n %s\n---' % viz_link)
+    if not onlyPrintFen:
+      print('---\nVisualize tiles link:\n %s\n---' % viz_link)
 
   if args.url:
-    print("\n--- Prediction on url %s ---" % args.url)
+    debug("\n--- Prediction on url %s ---" % args.url)
   else:
-    print("\n--- Prediction on file %s ---" % args.filepath)
+    debug("\n--- Prediction on file %s ---" % args.filepath)
   
   # Initialize predictor, takes a while, but only needed once
   predictor = ChessboardPredictor()
@@ -189,14 +218,14 @@ def main(args):
   # Use the worst case certainty as our final uncertainty score
   certainty = tile_certainties.min()
 
-  print('Per-tile certainty:')
-  print(tile_certainties)
-  print("Certainty range [%g - %g], Avg: %g" % (
+  debug('Per-tile certainty:')
+  debug(tile_certainties)
+  debug("Certainty range [%g - %g], Avg: %g" % (
     tile_certainties.min(), tile_certainties.max(), tile_certainties.mean()))
 
   active = args.active
-  print("---\nPredicted FEN:\n%s %s - - 0 1" % (short_fen, active))
-  print("Final Certainty: %.1f%%" % (certainty*100))
+  print("%s %s - - 0 1" % (short_fen, active))
+  debug("Final Certainty: %.1f%%" % (certainty*100))
 
 if __name__ == '__main__':
   np.set_printoptions(suppress=True, precision=3)
